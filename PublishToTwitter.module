@@ -764,48 +764,85 @@ class PublishToTwitter extends WireData implements Module, ConfigurableModule {
         $_pp = $ptt->publish_to_twitter_pre_prepend;
         $_pt = $ptt->publish_to_twitter_pre_templates;
         $_ps = $ptt->publish_to_twitter_pre_space;
-        $query = array(
-            "status" => array(
-                "text" => $p->getUnformatted($_tf),
-                "id" => $p->id,
-                "mc" => $_mc,
-                "ml" => $_ml,
-                "wt" => ((strlen($_wt)) ? " {$_wt}" : ""),
-                "pp" => "",
-            )
-        );
 
-        // check if template (of page to tweet) is set to alter tweettext
-        if (($_pt && count($_pt)) && in_array($p->template->id, $_pt)) {
-            $query["status"]["pp"] = $_pp . ($_ps ? " " : "");
+        if ($p->template == 'hearing')
+        {
+            $days = array("So", "Mo", "Di", "Mi", "Do", "Fr", "Sa");
+            $text = "Verhandlung i.S. " . $this->wordLimiter($p->matter, 45) . ": " . $this->wordLimiter($p->location, 20) . ", " . $days[date("w")] . " " . date("d.m.Y H:i", $p->date_time) . " " . $this->shortenBitLy("https://jarvis12.piratenpartei-bayern.de/verhandlungen/") . " /" . $p->modifiedUser->tweet_acronym;
+            $query = array(
+                "status" => array(
+                    "text" => $text,
+                    "id" => $p->id,
+                )
+            );
+
+            $result = $ptt->TwitterConnection("spost", $_ck, $_cs, $_at, $_as, $query);
         }
-
-        // when there is media, append it to the twitter query
-        if ($_if && wire('fields')->get($_if) && $p->get($_if) && count($p->get($_if))) {
-            // imagefield found and filled
-            $media = "";
-            $_ic = 0;
-            foreach ($p->get($_if) as $image) {
-                // default image properties
-                $im_opts = array("upscaling" => false);
-
-                // resize the twitterimage, we don't want to spoil datatraffic
-                $_ti = ($image->width > $image->height) ? $image->size($_id, 0, $im_opts) : $image->size(0, $_id, $im_opts);
-
-                // images for Twitter should not exceed 3MB
-                if ($_ti->filesize > $_is) break;
-
-                // upload media to twitter and get an ID for in tweet
-                $media = (empty($media)) ? $_ti->filename : implode(",", array($media, $_ti->filename));
-                $_ic++;
-                if ($_ic >= $_il) break;
+        else if ($p->template == 'case')
+        {
+            if (strlen($p->docurl) > 0)
+            {
+                $text = $this->wordLimiter($p->tweet, 110) . " " . $this->shortenBitLy($p->docurl) . " /" . $p->modifiedUser->tweet_acronym;
             }
-            // append media to status as imploded string with separator "," (comma)
-            $query["media_ids"] = $media;
-        }
+            else
+            {
+                $text = $this->wordLimiter($p->tweet, 135) . " /" . $p->modifiedUser->tweet_acronym;
+            }
 
-        // try to tweet
-        $result = $ptt->TwitterConnection("post", $_ck, $_cs, $_at, $_as, $query);
+            $query = array(
+                "status" => array(
+                    "text" => $text,
+                    "id" => $p->id,
+                )
+            );
+
+            $result = $ptt->TwitterConnection("spost", $_ck, $_cs, $_at, $_as, $query);
+        }
+        else
+        {
+            $query = array(
+                "status" => array(
+                    "text" => $p->getUnformatted($_tf),
+                    "id" => $p->id,
+                    "mc" => $_mc,
+                    "ml" => $_ml,
+                    "wt" => ((strlen($_wt)) ? " {$_wt}" : ""),
+                    "pp" => "",
+                )
+            );
+
+            // check if template (of page to tweet) is set to alter tweettext
+            if (($_pt && count($_pt)) && in_array($p->template->id, $_pt)) {
+                $query["status"]["pp"] = $_pp . ($_ps ? " " : "");
+            }
+
+            // when there is media, append it to the twitter query
+            if ($_if && wire('fields')->get($_if) && $p->get($_if) && count($p->get($_if))) {
+                // imagefield found and filled
+                $media = "";
+                $_ic = 0;
+                foreach ($p->get($_if) as $image) {
+                    // default image properties
+                    $im_opts = array("upscaling" => false);
+
+                    // resize the twitterimage, we don't want to spoil datatraffic
+                    $_ti = ($image->width > $image->height) ? $image->size($_id, 0, $im_opts) : $image->size(0, $_id, $im_opts);
+
+                    // images for Twitter should not exceed 3MB
+                    if ($_ti->filesize > $_is) break;
+
+                    // upload media to twitter and get an ID for in tweet
+                    $media = (empty($media)) ? $_ti->filename : implode(",", array($media, $_ti->filename));
+                    $_ic++;
+                    if ($_ic >= $_il) break;
+                }
+                // append media to status as imploded string with separator "," (comma)
+                $query["media_ids"] = $media;
+            }
+
+            // try to tweet
+            $result = $ptt->TwitterConnection("post", $_ck, $_cs, $_at, $_as, $query);
+        }
 
         // when all ok, update page
         if ($result && (!isset($result->errors) || !count($result->errors))) {
@@ -841,6 +878,11 @@ class PublishToTwitter extends WireData implements Module, ConfigurableModule {
             case 'verify'   :
                 $toa = new TwitterOAuth($_ck, $_cs, $_at, $_as);
                 return $toa->get('account/verify_credentials', $query);
+            case 'spost'  :
+                $text = $query["status"]["text"];
+                $post_query = array("status" => $text);
+                $toa = new TwitterOAuth($_ck, $_cs, $_at, $_as);
+                return $toa->post('statuses/update', $post_query);
             case 'post'     :
                 // split array $query to look for media
                 $media = (!empty($query["media_ids"])) ? explode(",", $query["media_ids"]) : array();
