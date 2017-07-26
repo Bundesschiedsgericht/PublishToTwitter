@@ -798,6 +798,19 @@ class PublishToTwitter extends WireData implements Module, ConfigurableModule {
 
             $result = $ptt->TwitterConnection("spost", $_ck, $_cs, $_at, $_as, $query);
         }
+        else if ($p->template == 'news_item')
+        {
+            $text = $this->wordLimiter($p->getUnformatted('body'), 110) . " " . $this->shortenBitLy('https://jarvis12.piratenpartei-bayern.de/') . " /" . $p->modifiedUser->tweet_acronym;
+
+            $query = array(
+                "status" => array(
+                    "text" => $text,
+                    "id" => $p->id,
+                )
+            );
+
+            $result = $ptt->TwitterConnection("spost", $_ck, $_cs, $_at, $_as, $query);
+        }
         else
         {
             $query = array(
