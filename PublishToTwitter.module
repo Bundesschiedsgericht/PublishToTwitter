@@ -768,7 +768,7 @@ class PublishToTwitter extends WireData implements Module, ConfigurableModule {
         if ($p->template == 'hearing')
         {
             $days = array("So", "Mo", "Di", "Mi", "Do", "Fr", "Sa");
-            $text = "Verhandlung i.S. " . $this->wordLimiter($p->matter, 45) . ": " . $this->wordLimiter($p->location, 20) . ", " . $days[date("w")] . " " . date("d.m.Y H:i", $p->date_time) . " " . $this->shortenBitLy("https://jarvis12.piratenpartei-bayern.de/verhandlungen/") . " /" . $p->modifiedUser->tweet_acronym;
+            $text = "Verhandlung i.S. " . $this->wordLimiter($p->matter, 45) . ": " . $this->wordLimiter($p->location, 20) . ", " . $days[date("w")] . " " . date("d.m.Y H:i", $p->date_time) . " " . $this->shortenBitLy("https://piraten-bsg.de/verhandlungen/") . " /" . $p->modifiedUser->tweet_acronym;
             $query = array(
                 "status" => array(
                     "text" => $text,
@@ -800,7 +800,7 @@ class PublishToTwitter extends WireData implements Module, ConfigurableModule {
         }
         else if ($p->template == 'news_item')
         {
-            $text = $this->wordLimiter($p->getUnformatted('body'), 110) . " " . $this->shortenBitLy('https://jarvis12.piratenpartei-bayern.de/') . " /" . $p->modifiedUser->tweet_acronym;
+            $text = $this->wordLimiter($p->getUnformatted('body'), 110) . " " . $this->shortenBitLy('https://piraten-bsg.de/') . " /" . $p->modifiedUser->tweet_acronym;
 
             $query = array(
                 "status" => array(
